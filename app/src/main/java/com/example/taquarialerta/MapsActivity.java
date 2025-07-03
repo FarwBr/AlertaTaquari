@@ -4,6 +4,7 @@ import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -39,26 +40,38 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             mapFragment.getMapAsync(this);
         }
     }
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
 
-        // Se já tiver permissão, ativa localização e move a câmera
+        TextView textNivelRio = findViewById(R.id.textNivelRio);
+        textNivelRio.setText(String.format("Nível atual: %.2f m", simulatedNivelRio));
+
+        // Altera a cor do fundo conforme o nível simulado
+        if (simulatedNivelRio <= 3.0f) {
+            textNivelRio.setBackgroundColor(0xAA2196F3); // azul semi-transparente
+        } else if (simulatedNivelRio > 3.0f && simulatedNivelRio < 6.0f) {
+            textNivelRio.setBackgroundColor(0xAAFFFF00); // amarelo semi-transparente
+        } else if (simulatedNivelRio >= 6.0f) {
+            textNivelRio.setBackgroundColor(0xAAFF0000); // vermelho semi-transparente
+        }
+
         if (checkLocationPermission()) {
             enableMyLocation();
         } else {
-            // Pede permissão em tempo de execução
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                     LOCATION_PERMISSION_REQUEST_CODE);
         }
     }
 
+
     private boolean checkLocationPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;
     }
+    private float simulatedNivelRio = 3.2f;
+
 
     private void enableMyLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
