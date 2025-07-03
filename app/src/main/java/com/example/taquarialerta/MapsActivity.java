@@ -2,9 +2,10 @@ package com.example.taquarialerta;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.os.Bundle;
+import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -25,6 +26,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
     private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+    private float simulatedNivelRio = 3.2f;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -39,7 +41,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (mapFragment != null) {
             mapFragment.getMapAsync(this);
         }
+
+        // Configura os botões já no onCreate (não dependem do mapa estar pronto)
+        Button btnDoacao = findViewById(R.id.buttonDoacao);
+        Button btnAjuda = findViewById(R.id.buttonAjuda);
+        Button btnAlagado = findViewById(R.id.buttonAlagado);
+
+        btnDoacao.setOnClickListener(v ->
+                Toast.makeText(this, "Botão Doação clicado!", Toast.LENGTH_SHORT).show());
+
+        btnAjuda.setOnClickListener(v ->
+                Toast.makeText(this, "Botão Ajuda clicado!", Toast.LENGTH_SHORT).show());
+
+        btnAlagado.setOnClickListener(v ->
+                Toast.makeText(this, "Botão Alagado clicado!", Toast.LENGTH_SHORT).show());
     }
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -65,13 +82,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     }
 
-
     private boolean checkLocationPermission() {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
                 == PackageManager.PERMISSION_GRANTED;
     }
-    private float simulatedNivelRio = 3.2f;
-
 
     private void enableMyLocation() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
