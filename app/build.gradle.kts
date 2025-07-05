@@ -37,6 +37,7 @@ android {
 }
 
 dependencies {
+
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
 
@@ -49,5 +50,3 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.firebase:firebase-auth")
 }
-
-apply(plugin = "com.google.gms.google-services")
