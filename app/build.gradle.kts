@@ -37,6 +37,8 @@ android {
 }
 
 dependencies {
+    implementation("com.squareup.okhttp3:okhttp:4.11.0")
+    implementation("org.json:json:20230227")
 
     implementation(libs.play.services.maps)
     implementation(libs.play.services.location)
