@@ -27,10 +27,10 @@ public class MainActivity extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
 
-        // >>> Etapa 5: Inicializar o Firebase
+        // >>> Inicializar o Firebase
         FirebaseApp.initializeApp(this);
 
-        // >>> LOGS DE DEBUG DA CONFIGURAÇÃO DO FIREBASE
+        // >>> Logs de debug da configuração do Firebase
         FirebaseApp firebaseApp = FirebaseApp.getInstance();
         FirebaseOptions options = firebaseApp.getOptions();
         Log.d("FirebaseTest", "Firebase ProjectID: " + options.getProjectId());
@@ -46,18 +46,16 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Pegando os botões pelo ID
-        Button btnQueroAjudar = findViewById(R.id.buttonQueroAjudar);
-        Button btnPrecisoAjuda = findViewById(R.id.buttonPrecisoAjuda);
+        // Pegando o botão "Entrar" pelo ID
+        Button btnEntrar = findViewById(R.id.buttonEntrar);
 
         // Intent para MapsActivity
         Intent mapsIntent = new Intent(this, MapsActivity.class);
 
-        // Definindo listeners para os botões
-        btnQueroAjudar.setOnClickListener(v -> startActivity(mapsIntent));
-        btnPrecisoAjuda.setOnClickListener(v -> startActivity(mapsIntent));
+        // Listener do botão
+        btnEntrar.setOnClickListener(v -> startActivity(mapsIntent));
 
-        // >>> TESTE FIRESTORE: login anônimo e gravação de teste
+        // >>> Teste Firestore: login anônimo e gravação de teste
         FirebaseAuth.getInstance().signInAnonymously()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {

@@ -2,9 +2,10 @@ package com.example.taquarialerta;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -19,7 +20,9 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.firestore.DocumentSnapshot;
@@ -51,20 +54,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         if (mapFragment != null) {
             mapFragment.getMapAsync(this);
         }
-
-        // Configura os botões
-        Button btnDoacao = findViewById(R.id.buttonDoacao);
-        Button btnAjuda = findViewById(R.id.buttonAjuda);
-        Button btnAlagado = findViewById(R.id.buttonAlagado);
-
-        btnDoacao.setOnClickListener(v ->
-                Toast.makeText(this, "Botão Doação clicado!", Toast.LENGTH_SHORT).show());
-
-        btnAjuda.setOnClickListener(v ->
-                Toast.makeText(this, "Botão Ajuda clicado!", Toast.LENGTH_SHORT).show());
-
-        btnAlagado.setOnClickListener(v ->
-                Toast.makeText(this, "Botão Alagado clicado!", Toast.LENGTH_SHORT).show());
     }
 
     @Override
@@ -79,14 +68,22 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     LOCATION_PERMISSION_REQUEST_CODE);
         }
 
-        // Chama a API da ANA ao iniciar o mapa
         consultarNivelRio();
-
-        // Carrega alertas salvos do Firestore
         carregarAlertasDoFirestore();
 
-        // Permite clicar no mapa para marcar um alerta
+        // Adiciona alerta ao clicar no mapa
         mMap.setOnMapClickListener(this::abrirDialogAlerta);
+
+        // Permite remover marcador ao clicar com confirmação
+        mMap.setOnMarkerClickListener(marker -> {
+            new MaterialAlertDialogBuilder(this)
+                    .setTitle("Remover alerta")
+                    .setMessage("Deseja realmente remover este alerta?")
+                    .setPositiveButton("Remover", (dialog, which) -> removerAlertaDoFirestore(marker.getPosition(), marker))
+                    .setNegativeButton("Cancelar", null)
+                    .show();
+            return true; // Consome o clique
+        });
     }
 
     private void consultarNivelRio() {
@@ -97,17 +94,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         HidroWebApi.obterToken(identificador, senha, new HidroWebApi.TokenCallback() {
             @Override
             public void onTokenReceived(String token) {
-                Log.d("HidroWebApi", "Token recebido: " + token);
                 HidroWebApi.consultarDados(token, codigoEstacao, new HidroWebApi.DataCallback() {
                     @Override
                     public void onDataReceived(String json) {
-                        Log.d("HidroWebApi", "Dados recebidos: " + json);
                         runOnUiThread(() -> atualizarNivelNaTela(json));
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        Log.e("HidroWebApi", "Erro ao consultar dados", e);
                         runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Erro consultando nível do rio", Toast.LENGTH_SHORT).show());
                     }
                 });
@@ -115,7 +109,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
             @Override
             public void onError(Exception e) {
-                Log.e("HidroWebApi", "Erro ao obter token", e);
                 runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Erro autenticando na API", Toast.LENGTH_SHORT).show());
             }
         });
@@ -132,7 +125,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 TextView textNivelRio = findViewById(R.id.textNivelRio);
                 textNivelRio.setText(String.format("Nível atual: %.2f m\n(%s)", cota, data));
 
-                // Ajusta cor do fundo baseado no nível
                 if (cota <= 3.0f) {
                     textNivelRio.setBackgroundColor(0xAA2196F3); // azul
                 } else if (cota > 3.0f && cota < 6.0f) {
@@ -144,7 +136,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 Toast.makeText(this, "Nenhum dado retornado da estação", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
-            Log.e("HidroWebApi", "Erro processando JSON", e);
             Toast.makeText(this, "Erro processando dados do rio", Toast.LENGTH_SHORT).show();
         }
     }
@@ -174,19 +165,49 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         db.collection("alertas")
                 .add(alerta)
                 .addOnSuccessListener(documentReference -> {
-                    Toast.makeText(this, "Alerta salvo!", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(this, "Alerta \"" + tipo + "\" adicionado!", Toast.LENGTH_SHORT).show();
                     adicionarMarcador(latLng, tipo);
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Erro ao salvar alerta", Toast.LENGTH_SHORT).show();
-                });
+                .addOnFailureListener(e -> Toast.makeText(this, "Erro ao salvar alerta", Toast.LENGTH_SHORT).show());
+    }
+
+    private void removerAlertaDoFirestore(LatLng latLng, Marker marker) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db.collection("alertas")
+                .whereEqualTo("latitude", latLng.latitude)
+                .whereEqualTo("longitude", latLng.longitude)
+                .get()
+                .addOnSuccessListener(querySnapshot -> {
+                    if (!querySnapshot.isEmpty()) {
+                        for (DocumentSnapshot doc : querySnapshot) {
+                            db.collection("alertas").document(doc.getId()).delete();
+                        }
+                        marker.remove();
+                        Toast.makeText(this, "Alerta removido!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Alerta não encontrado no banco.", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(e -> Toast.makeText(this, "Erro ao remover alerta do banco.", Toast.LENGTH_SHORT).show());
     }
 
     private void adicionarMarcador(LatLng latLng, String tipo) {
+        int iconeRes;
+        switch (tipo) {
+            case "Alagado": iconeRes = R.drawable.ic_alagado; break;
+            case "Ajuda": iconeRes = R.drawable.ic_ajuda; break;
+            case "Doação": iconeRes = R.drawable.ic_doacao; break;
+            default: Log.w("MapsActivity", "Tipo de alerta desconhecido: " + tipo); return;
+        }
+
+        Bitmap originalBitmap = BitmapFactory.decodeResource(getResources(), iconeRes);
+        Bitmap scaledBitmap = Bitmap.createScaledBitmap(originalBitmap, 48, 48, false);
+
         mMap.addMarker(new MarkerOptions()
                 .position(latLng)
                 .title(tipo)
-                .snippet("Local marcado como " + tipo));
+                .snippet("Local marcado como " + tipo)
+                .icon(BitmapDescriptorFactory.fromBitmap(scaledBitmap)));
     }
 
     private void carregarAlertasDoFirestore() {
@@ -203,9 +224,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         }
                     }
                 })
-                .addOnFailureListener(e -> {
-                    Toast.makeText(this, "Erro ao carregar alertas", Toast.LENGTH_SHORT).show();
-                });
+                .addOnFailureListener(e -> Toast.makeText(this, "Erro ao carregar alertas", Toast.LENGTH_SHORT).show());
     }
 
     private boolean checkLocationPermission() {
@@ -214,8 +233,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     private void enableMyLocation() {
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                == PackageManager.PERMISSION_GRANTED) {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             mMap.setMyLocationEnabled(true);
 
             fusedLocationClient.getLastLocation()

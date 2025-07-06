@@ -4,14 +4,12 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- O mapa ocupa todo o FrameLayout -->
     <fragment
         android:id="@+id/maps"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- TextView com o nível do rio, movido um pouco mais para cima -->
     <TextView
         android:id="@+id/textNivelRio"
         android:layout_width="wrap_content"
@@ -24,46 +22,5 @@
         android:layout_gravity="center_horizontal|bottom"
         android:layout_marginBottom="96dp"
         android:elevation="4dp" />
-
-    <!-- Container com os botões na parte inferior -->
-    <LinearLayout
-        android:id="@+id/buttonContainer"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:gravity="center"
-        android:background="#80FFFFFF">
-
-        <Button
-            android:id="@+id/buttonDoacao"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Doação"
-            android:backgroundTint="#4CAF50"
-            android:textColor="#FFFFFF" />
-
-        <Button
-            android:id="@+id/buttonAjuda"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Ajuda"
-            android:backgroundTint="#F44336"
-            android:textColor="#FFFFFF"
-            android:layout_marginStart="8dp"
-            android:layout_marginEnd="8dp" />
-
-        <Button
-            android:id="@+id/buttonAlagado"
-            android:layout_width="0dp"
-            android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:text="Alagado"
-            android:backgroundTint="#009688"
-            android:textColor="#FFFFFF" />
-    </LinearLayout>
 
 </FrameLayout>
