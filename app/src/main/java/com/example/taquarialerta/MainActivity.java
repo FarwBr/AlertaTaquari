@@ -4,6 +4,8 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,30 +14,20 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.FieldValue;
-import com.google.firebase.firestore.FirebaseFirestore;
-
-import java.util.HashMap;
-import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
+
+    private EditText editTextEmail, editTextSenha;
+    private FirebaseAuth auth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
 
-        // >>> Inicializar o Firebase
         FirebaseApp.initializeApp(this);
-
-        // >>> Logs de debug da configuração do Firebase
-        FirebaseApp firebaseApp = FirebaseApp.getInstance();
-        FirebaseOptions options = firebaseApp.getOptions();
-        Log.d("FirebaseTest", "Firebase ProjectID: " + options.getProjectId());
-        Log.d("FirebaseTest", "Firebase ApplicationID: " + options.getApplicationId());
-        Log.d("FirebaseTest", "Firebase APIKey: " + options.getApiKey());
+        auth = FirebaseAuth.getInstance();
 
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
@@ -46,36 +38,74 @@ public class MainActivity extends AppCompatActivity {
             return insets;
         });
 
-        // Pegando o botão "Entrar" pelo ID
+        editTextEmail = findViewById(R.id.editTextEmail);
+        editTextSenha = findViewById(R.id.editTextSenha);
         Button btnEntrar = findViewById(R.id.buttonEntrar);
+        Button btnRegistrar = findViewById(R.id.buttonRegistrar);
+        Button btnConvidado = findViewById(R.id.buttonConvidado);
 
-        // Intent para MapsActivity
-        Intent mapsIntent = new Intent(this, MapsActivity.class);
+        btnEntrar.setOnClickListener(v -> login());
+        btnRegistrar.setOnClickListener(v -> registrar());
+        btnConvidado.setOnClickListener(v -> loginAnonimo());
+    }
 
-        // Listener do botão
-        btnEntrar.setOnClickListener(v -> startActivity(mapsIntent));
+    private void login() {
+        String email = editTextEmail.getText().toString();
+        String senha = editTextSenha.getText().toString();
 
-        // >>> Teste Firestore: login anônimo e gravação de teste
-        FirebaseAuth.getInstance().signInAnonymously()
+        if (email.isEmpty() || senha.isEmpty()) {
+            Toast.makeText(this, "Preencha email e senha.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        auth.signInWithEmailAndPassword(email, senha)
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        Log.d("FirebaseTest", "Login anônimo bem-sucedido");
-                        testarFirestore();
+                        Log.d("FirebaseAuth", "Login bem-sucedido");
+                        startMapsActivity();
                     } else {
-                        Log.e("FirebaseTest", "Erro no login anônimo", task.getException());
+                        Log.e("FirebaseAuth", "Falha no login", task.getException());
+                        Toast.makeText(this, "Erro no login: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                     }
                 });
     }
 
-    private void testarFirestore() {
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
-        Map<String, Object> dadosTeste = new HashMap<>();
-        dadosTeste.put("mensagem", "Olá, Firestore!");
-        dadosTeste.put("timestamp", FieldValue.serverTimestamp());
+    private void registrar() {
+        String email = editTextEmail.getText().toString();
+        String senha = editTextSenha.getText().toString();
 
-        db.collection("testes").document("testeSimples")
-                .set(dadosTeste)
-                .addOnSuccessListener(aVoid -> Log.d("FirebaseTest", "Documento gravado com sucesso!"))
-                .addOnFailureListener(e -> Log.e("FirebaseTest", "Falha ao gravar documento", e));
+        if (email.isEmpty() || senha.isEmpty()) {
+            Toast.makeText(this, "Preencha email e senha.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        auth.createUserWithEmailAndPassword(email, senha)
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d("FirebaseAuth", "Registro bem-sucedido");
+                        startMapsActivity();
+                    } else {
+                        Log.e("FirebaseAuth", "Erro ao registrar", task.getException());
+                        Toast.makeText(this, "Erro no registro: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void loginAnonimo() {
+        auth.signInAnonymously()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        Log.d("FirebaseAuth", "Login anônimo bem-sucedido");
+                        startMapsActivity();
+                    } else {
+                        Log.e("FirebaseAuth", "Erro no login anônimo", task.getException());
+                        Toast.makeText(this, "Erro no login anônimo", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void startMapsActivity() {
+        startActivity(new Intent(this, MapsActivity.class));
+        finish();
     }
 }

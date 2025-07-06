@@ -89,47 +89,57 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private void consultarNivelRio() {
         String identificador = "03437037005";
         String senha = "t9tnzz7q";
-        String codigoEstacao = "87450100";
+        String codigoEstacao = "86879300";
 
         HidroWebApi.obterToken(identificador, senha, new HidroWebApi.TokenCallback() {
             @Override
             public void onTokenReceived(String token) {
+                if (token == null || token.isEmpty()) {
+                    runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Token inválido ou não recebido", Toast.LENGTH_SHORT).show());
+                    Log.e("HidroWebApi", "Token nulo ou vazio!");
+                    return;
+                }
+
+                Log.d("HidroWebApi", "Token recebido: " + token);
                 HidroWebApi.consultarDados(token, codigoEstacao, new HidroWebApi.DataCallback() {
                     @Override
                     public void onDataReceived(String json) {
+                        Log.d("HidroWebApi", "Dados recebidos: " + json);
                         runOnUiThread(() -> atualizarNivelNaTela(json));
                     }
 
                     @Override
                     public void onError(Exception e) {
-                        runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Erro consultando nível do rio", Toast.LENGTH_SHORT).show());
+                        Log.e("HidroWebApi", "Erro ao consultar dados", e);
+                        runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Erro consultando nível do rio: " + e.getMessage(), Toast.LENGTH_LONG).show());
                     }
                 });
             }
 
             @Override
             public void onError(Exception e) {
-                runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Erro autenticando na API", Toast.LENGTH_SHORT).show());
+                Log.e("HidroWebApi", "Erro ao obter token", e);
+                runOnUiThread(() -> Toast.makeText(MapsActivity.this, "Erro autenticando na API: " + e.getMessage(), Toast.LENGTH_LONG).show());
             }
         });
     }
-
     private void atualizarNivelNaTela(String json) {
         try {
             JSONObject obj = new JSONObject(json);
             JSONArray items = obj.getJSONArray("items");
             if (items.length() > 0) {
                 JSONObject dado = items.getJSONObject(0);
-                double cota = dado.getDouble("valor");
-                String data = dado.getString("dataHora");
+                double cota = dado.getDouble("Cota_Adotada") / 100.0;
+
+                String data = dado.getString("Data_Hora_Medicao");
                 TextView textNivelRio = findViewById(R.id.textNivelRio);
                 textNivelRio.setText(String.format("Nível atual: %.2f m\n(%s)", cota, data));
 
-                if (cota <= 3.0f) {
+                if (cota <= 15.0f) {
                     textNivelRio.setBackgroundColor(0xAA2196F3); // azul
-                } else if (cota > 3.0f && cota < 6.0f) {
+                } else if (cota > 15.0f && cota < 19.0f) {
                     textNivelRio.setBackgroundColor(0xAAFFFF00); // amarelo
-                } else if (cota >= 6.0f) {
+                } else if (cota >= 19.0f) {
                     textNivelRio.setBackgroundColor(0xAAFF0000); // vermelho
                 }
             } else {
@@ -139,6 +149,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             Toast.makeText(this, "Erro processando dados do rio", Toast.LENGTH_SHORT).show();
         }
     }
+
 
     private void abrirDialogAlerta(LatLng latLng) {
         String[] opcoes = {"Alagado", "Ajuda", "Doação"};

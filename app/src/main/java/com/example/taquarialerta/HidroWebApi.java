@@ -1,8 +1,12 @@
 package com.example.taquarialerta;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
+import android.util.Log;
 import okhttp3.*;
 import org.json.JSONObject;
-
 import java.io.IOException;
 
 public class HidroWebApi {
@@ -39,8 +43,13 @@ public class HidroWebApi {
                     return;
                 }
                 String responseBody = response.body().string();
+                Log.d("HidroWebApi", "Resposta token: " + responseBody);
                 String token = parseTokenFromJson(responseBody);
-                callback.onTokenReceived(token);
+                if (token != null) {
+                    callback.onTokenReceived(token);
+                } else {
+                    callback.onError(new Exception("Token não encontrado na resposta"));
+                }
             }
         });
     }
@@ -48,9 +57,10 @@ public class HidroWebApi {
     public static void consultarDados(String token, String codigoEstacao, DataCallback callback) {
         HttpUrl url = HttpUrl.parse(BASE_URL + "/HidroinfoanaSerieTelemetricaAdotada/v1")
                 .newBuilder()
-                .addQueryParameter("CodigoDaEstacao", codigoEstacao)
-                .addQueryParameter("TipoFiltroData", "DATA_LEITURA")
-                .addQueryParameter("RangeIntervaloDeBusca", "DIAS_1")
+                .addQueryParameter("Código da Estação", codigoEstacao)
+                .addQueryParameter("Tipo Filtro Data", "DATA_LEITURA")
+                .addQueryParameter("Data de Busca (yyyy-MM-dd)", new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date()))
+                .addQueryParameter("Range Intervalo de busca", "HORA_1")
                 .build();
 
         Request request = new Request.Builder()
